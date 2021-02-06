@@ -30,6 +30,7 @@ import (
 	"errors"
 	"go/build"
 	"os"
+	"sync"
 )
 
 // ErrRootPkgNotResolved is returned when the root Pkg of the Tree cannot be resolved,
@@ -52,6 +53,7 @@ type Tree struct {
 
 	Importer Importer
 
+	cacheLock   sync.Mutex
 	importCache map[string]struct{}
 }
 
@@ -117,6 +119,9 @@ func (t *Tree) isAtMaxDepth(p *Pkg) bool {
 // hasSeenImport returns true if the import name provided has already been seen within the tree.
 // This function only returns false for a name once.
 func (t *Tree) hasSeenImport(name string) bool {
+	t.cacheLock.Lock()
+	defer t.cacheLock.Unlock()
+
 	if t.importCache == nil {
 		t.importCache = make(map[string]struct{})
 	}
