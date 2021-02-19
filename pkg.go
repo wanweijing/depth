@@ -42,7 +42,7 @@ type buildTask struct {
 var g_lockCache sync.Mutex
 var g_cache = map[string]*buildTask{}
 
-var OnlyParse string
+// var OnlyParse string
 
 func getCache(name string, pkg *Pkg, i Importer) *Pkg {
 	g_lockCache.Lock()
@@ -103,7 +103,7 @@ func (p *Pkg) resolveImpl(i Importer) {
 	}
 
 	// fmt.Println(d.Milliseconds())
-	fmt.Println("goroot解析导入包 -> ", time.Now(), p.Name, name, p.SrcDir)
+	fmt.Println("goroot解析导入包 -> ", time.Now(), p.Name)
 
 	if err != nil {
 		// TODO: Check the error type?
@@ -150,6 +150,28 @@ func (p *Pkg) resolveImpl(i Importer) {
 // Resolve recursively finds all dependencies for the Pkg and the packages it depends on.
 func (p *Pkg) Resolve(i Importer) {
 	name := p.cleanName()
+
+	// 强制跳过
+	skips := []string{
+		"github.com",
+		"go.mongodb.org",
+		"golang.org",
+		"google.golang.org",
+		"gopkg.in",
+		"git.dustess.com/mk-base",
+	}
+
+	for _, v := range skips {
+		if strings.HasPrefix(name, "git.dustess.com/mk-base/gin-ext/api") || strings.HasPrefix(name, "git.dustess.com/mk-base/pkg") {
+			continue
+		}
+
+		if strings.HasPrefix(name, v) {
+			fmt.Printf("跳过%v解析\n", name)
+			return
+		}
+	}
+
 	if alreadyParsed := getCache(name, p, i); alreadyParsed != nil {
 		*p = *alreadyParsed
 		return
@@ -189,7 +211,6 @@ func (p *Pkg) Resolve(i Importer) {
 		}
 
 		// fmt.Println(d.Milliseconds())
-		fmt.Println("goroot解析导入包 -> ", time.Now(), p.Name, name, p.SrcDir)
 	}
 
 	if err != nil {
